@@ -16,7 +16,7 @@ type WaiterOrderRow = {
   service_areas: {
     name: string;
     slug: string;
-  } | null;
+  }[];
   order_items: {
     name: string;
     quantity: number;
@@ -150,8 +150,8 @@ export default function WaiterView({ orders }: { orders: WaiterOrderRow[] }) {
                     {formatTime(order.created_at)}
                   </span>
                   <span className="text-xs text-neutral-500">
-                    אזור: {order.service_areas?.name} (
-                    {order.service_areas?.slug})
+                    אזור: {order.service_areas?.[0]?.name} (
+                    {order.service_areas?.[0]?.slug})
                   </span>
                 </div>
                 <div className="text-right">
