@@ -13,7 +13,7 @@ type DbOrderRow = {
   service_areas: {
     name: string;
     slug: string;
-  } | null;
+  }[];
   order_items: {
     name: string;
     quantity: number;
