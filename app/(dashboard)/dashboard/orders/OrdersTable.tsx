@@ -15,7 +15,7 @@ type DbOrderRow = {
   service_areas: {
     name: string;
     slug: string;
-  } | null;
+  }[];
   order_items: {
     name: string;
     quantity: number;
@@ -221,9 +221,9 @@ export default function OrdersTable({
                   {formatDateTime(order.created_at)}
                 </td>
                 <td className="p-2 border-b whitespace-nowrap">
-                  {order.service_areas?.name ?? "-"}
+                  {order.service_areas?.[0]?.name ?? "-"}
                   <div className="text-xs text-slate-400">
-                    {order.service_areas?.slug}
+                    {order.service_areas?.[0]?.slug}
                   </div>
                 </td>
                 <td className="p-2 border-b whitespace-nowrap">
