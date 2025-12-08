@@ -424,7 +424,7 @@ export default function ParkClient({ areaSlug, area, products }: Props) {
           <p className="mt-2 text-sm text-red-400">{orderError}</p>
         )}
 
-        {orderResult && (
+        {/* {orderResult && (
           <div className="mt-3 text-sm bg-emerald-950 border border-emerald-700 p-2 rounded text-emerald-100">
             <div>✅ ההזמנה נשלחה!</div>
             <div>מספר הזמנה: {orderResult.orderId}</div>
@@ -433,7 +433,34 @@ export default function ParkClient({ areaSlug, area, products }: Props) {
               {(orderResult.totalAmount / 100).toFixed(2)} ₪
             </div>
           </div>
+        )} */}
+
+        {orderResult && (
+          <div className="mt-3 text-sm bg-emerald-950 border border-emerald-700 p-2 rounded text-emerald-100">
+            <div>✅ ההזמנה נשלחה!</div>
+            <div>מספר הזמנה: {orderResult.orderId}</div>
+            <div>
+              סכום: {(orderResult.totalAmount / 100).toFixed(2)} ₪
+            </div>
+
+            {/* 👇 חדש: הכנה ללינק תשלום בביט */}
+            {orderResult.paymentUrl ? (
+              <a
+                href={orderResult.paymentUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-2 inline-block text-xs text-emerald-300 underline"
+              >
+                תשלום אונליין (ביט)
+              </a>
+            ) : (
+              <div className="mt-2 text-xs text-neutral-300">
+                התשלום יתבצע כרגע במזומן מול השליח.
+              </div>
+            )}
+          </div>
         )}
+
 
         {activeOrderId && (
           <div className="mt-3 text-sm bg-neutral-900 border border-neutral-700 p-2 rounded">

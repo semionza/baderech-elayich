@@ -22,7 +22,6 @@ export async function POST(req: Request) {
 
     const { areaSlug, customerPhone, customerNote, lat, lng, items } = body;
 
-    // 1. ולידציה בסיסית של קלט
     if (!areaSlug || !customerPhone || !items || items.length === 0) {
       return NextResponse.json(
         { error: "Missing required fields" },
@@ -30,7 +29,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // ניקוי פריטים עם quantity לא תקין
     const normalizedItems = items
       .map((it) => ({
         productId: it.productId,
@@ -45,7 +43,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // 2. מוצאים את אזור השירות לפי slug
+    // 1. מוצאים את אזור השירות
     const { data: area, error: areaError } = await supabase
       .from("service_areas")
       .select("id, vendor_id, slug, is_active")
@@ -68,7 +66,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // 3. טוענים את כל המוצרים שהוזמנו מה-DB (לפי vendor_id)
+    // 2. טוענים מוצרים לפי vendor + ids
     const productIds = Array.from(
       new Set(normalizedItems.map((it) => it.productId))
     );
@@ -95,7 +93,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // בודקים שכל ה-productId שביקשו באמת קיימים
     const foundIds = new Set(products.map((p) => p.id));
     const missing = normalizedItems.filter((it) => !foundIds.has(it.productId));
 
@@ -106,7 +103,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // 4. מחשבים סכום total_amount באגורות
+    // 3. מחשבים total + בונים payload ל-order_items
     let totalAmount = 0;
     const itemsWithProductData = normalizedItems.map((it) => {
       const product = products.find((p) => p.id === it.productId)!;
@@ -121,7 +118,15 @@ export async function POST(req: Request) {
       };
     });
 
-    // 5. יוצרים את ההזמנה בטבלת orders
+    // 4. כאן בעתיד תתחבר ל-API של ביט
+    // למשל:
+    // const { paymentUrl, paymentReference } = await createBitPayment({ ... })
+    //
+    // כרגע – נשאיר NULL, אבל מחזירים שדות בתשובה, כדי שה-frontend יהיה מוכן.
+    const paymentUrl: string | null = null;
+    const paymentReference: string | null = null;
+
+    // 5. יוצרים הזמנה
     const { data: createdOrder, error: orderError } = await supabase
       .from("orders")
       .insert({
@@ -135,8 +140,12 @@ export async function POST(req: Request) {
         currency: "ILS",
         status: "PENDING",
         payment_status: "UNPAID",
+        payment_url: paymentUrl,
+        payment_reference: paymentReference,
       })
-      .select("id, created_at, status, payment_status, total_amount")
+      .select(
+        "id, created_at, status, payment_status, total_amount, payment_url, payment_reference"
+      )
       .single();
 
     if (orderError || !createdOrder) {
@@ -147,7 +156,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // 6. מוסיפים שורות ל-order_items
+    // 6. order_items
     const orderItemsPayload = itemsWithProductData.map((it) => ({
       order_id: createdOrder.id,
       product_id: it.productId,
@@ -162,10 +171,10 @@ export async function POST(req: Request) {
 
     if (itemsInsertError) {
       console.error("Error inserting order items:", itemsInsertError);
-      // לא מוחקים order בשלב זה, אבל אפשר לשפר בעתיד ל-transaction
+      // אפשר לשפר בעתיד ל-transaction
     }
 
-    // 7. מחזירים תשובה ללקוח
+    // 7. מחזירים תשובה ללקוח כולל paymentUrl / paymentReference
     return NextResponse.json(
       {
         orderId: createdOrder.id,
@@ -174,6 +183,8 @@ export async function POST(req: Request) {
         status: createdOrder.status,
         paymentStatus: createdOrder.payment_status,
         createdAt: createdOrder.created_at,
+        paymentUrl: createdOrder.payment_url,
+        paymentReference: createdOrder.payment_reference,
       },
       { status: 201 }
     );
