@@ -238,45 +238,106 @@ export default function ParkClient({ areaSlug, area, products }: Props) {
   }, []);
 
   useEffect(() => {
-    if (!activeOrderId) return;
+  if (!activeOrderId) return;
 
-    let cancelled = false;
-    let intervalId: number | undefined;
+  let cancelled = false;
+  let intervalId: number | undefined;
 
-    const fetchStatus = async () => {
-      try {
-        const res = await fetch(`/api/orders/${activeOrderId}`);
-        const data = await res.json();
+  const fetchStatus = async () => {
+    try {
+      const res = await fetch(`/api/orders/${activeOrderId}`, {
+        cache: "no-store",
+      });
 
-        if (!res.ok) {
-          console.error("Status fetch error:", data);
-          return;
+      if (!res.ok) {
+        // מנסים לקרוא טקסט (לא JSON) רק לצורך debug
+        const text = await res.text().catch(() => "");
+        console.error(
+          "Status fetch error:",
+          res.status,
+          res.statusText,
+          text
+        );
+
+        // אם השרת מחזיר 404 – ננקה את ההזמנה הפעילה ונפסיק לעקוב
+        if (!cancelled && res.status === 404) {
+          setActiveOrderId(null);
+          setActiveOrderStatus(null);
+          if (intervalId) clearInterval(intervalId);
         }
 
-        if (!cancelled) {
-          setActiveOrderStatus(data.status);
-          // אם סופק או בוטל – אפשר לעצור מעקב
-          if (data.status === "DELIVERED" || data.status === "CANCELLED") {
-            // אפשר להשאיר את הסטטוס על המסך, אבל להפסיק polling
-            if (intervalId) {
-              clearInterval(intervalId);
-            }
-          }
-        }
-      } catch (e) {
-        console.error("Status polling error:", e);
+        return;
       }
-    };
 
-    // נעדכן מיד ואז כל 10 שניות
-    fetchStatus();
-    intervalId = window.setInterval(fetchStatus, 10000);
+      // כאן אנחנו מניחים שהתגובה באמת JSON
+      const data = await res.json().catch((e) => {
+        console.error("Failed to parse JSON from status response:", e);
+        return null;
+      });
 
-    return () => {
-      cancelled = true;
-      if (intervalId) clearInterval(intervalId);
-    };
-  }, [activeOrderId]);
+      if (!data || cancelled) return;
+
+      setActiveOrderStatus(data.status);
+
+      // אם סופקה / בוטלה – אפשר לעצור polling
+      if (data.status === "DELIVERED" || data.status === "CANCELLED") {
+        if (intervalId) clearInterval(intervalId);
+      }
+    } catch (e) {
+      console.error("Status polling error:", e);
+    }
+  };
+
+  // נעדכן מיד ואז כל 10 שניות
+  fetchStatus();
+  intervalId = window.setInterval(fetchStatus, 10000);
+
+  return () => {
+    cancelled = true;
+    if (intervalId) clearInterval(intervalId);
+  };
+}, [activeOrderId]);
+
+  // useEffect(() => {
+  //   if (!activeOrderId) return;
+
+  //   let cancelled = false;
+  //   let intervalId: number | undefined;
+
+  //   const fetchStatus = async () => {
+  //     try {
+  //       const res = await fetch(`/api/orders/${activeOrderId}`);
+  //       const data = await res.json();
+
+  //       if (!res.ok) {
+  //         console.error("Status fetch error:", data);
+  //         return;
+  //       }
+
+  //       if (!cancelled) {
+  //         setActiveOrderStatus(data.status);
+  //         // אם סופק או בוטל – אפשר לעצור מעקב
+  //         if (data.status === "DELIVERED" || data.status === "CANCELLED") {
+  //           // אפשר להשאיר את הסטטוס על המסך, אבל להפסיק polling
+  //           if (intervalId) {
+  //             clearInterval(intervalId);
+  //           }
+  //         }
+  //       }
+  //     } catch (e) {
+  //       console.error("Status polling error:", e);
+  //     }
+  //   };
+
+  //   // נעדכן מיד ואז כל 10 שניות
+  //   fetchStatus();
+  //   intervalId = window.setInterval(fetchStatus, 10000);
+
+  //   return () => {
+  //     cancelled = true;
+  //     if (intervalId) clearInterval(intervalId);
+  //   };
+  // }, [activeOrderId]);
 
   const statusLabel =
     (activeOrderStatus && STATUS_LABELS[activeOrderStatus]) ||
@@ -285,74 +346,79 @@ export default function ParkClient({ areaSlug, area, products }: Props) {
   // ========== UI ==========
 
   return (
-    <main className="p-6 space-y-6">
-      <header>
-        <h1 className="text-3xl font-bold mb-1">{area.name}</h1>
-        <p className="text-neutral-400 text-sm">
+  <main className="park-root">
+    <div className="park-wrapper">
+      {/* כותרת הגינה */}
+      <header className="park-header">
+        <h1 className="park-title">{area.name}</h1>
+        <p className="park-subtitle">
           גינה: <span className="font-mono">{areaSlug}</span>
         </p>
       </header>
 
-      {/* תפריט מוצרים + כפתורי + / - */}
-      <section className="rounded-xl border border-neutral-800 bg-neutral-950 p-4 shadow-sm space-y-4">
-        <h2 className="text-xl font-semibold">תפריט</h2>
+      {/* סטטוס מיקום */}
+      {allowed === false && (
+        <p className="park-geo-error">
+          {locationError ??
+            "אי אפשר להזמין מהמיקום הנוכחי שלך. נסה להתקרב לגינה או לאפשר גישה למיקום."}
+        </p>
+      )}
 
-        {allowed === false && (
-          <p className="mb-3 text-sm text-red-400">
-            {locationError ??
-              "אי אפשר להזמין מהמיקום הנוכחי שלך."}
-          </p>
-        )}
+      {allowed === null && (
+        <p className="park-geo-info">בודק את המיקום שלך...</p>
+      )}
 
-        {allowed === null && (
-          <p className="mb-3 text-sm text-neutral-400">
-            בודק את המיקום שלך...
-          </p>
-        )}
+      {/* תפריט מוצרים */}
+      <section className="park-card">
+        <div className="park-card-header">
+          <div>
+            <h2 className="park-card-title">תפריט</h2>
+            <p className="park-card-subtitle">
+              בחרו מה להביא אליכם לגינה
+            </p>
+          </div>
+        </div>
 
-        <ul className="space-y-3">
+        <ul className="park-product-list">
           {products.map((product) => {
             const qty = cart[product.id] ?? 0;
 
             return (
-              <li
-                key={product.id}
-                className="flex items-center justify-between border-b border-neutral-800 pb-2 last:border-none gap-3"
-              >
-                <div className="flex-1">
-                  <div className="font-medium text-neutral-100">
+              <li key={product.id} className="park-product-item">
+                <div className="park-product-main">
+                  <div className="park-product-name">
                     {product.name}
                   </div>
                   {product.description && (
-                    <div className="text-sm text-neutral-400">
+                    <div className="park-product-desc">
                       {product.description}
                     </div>
                   )}
-                </div>
-                <div className="text-right">
-                  <div className="font-bold text-neutral-100">
+                  <div className="park-product-price">
                     {(product.price / 100).toFixed(2)} ₪
                   </div>
-                  <div className="mt-2 flex items-center gap-2 justify-end">
-                    <button
-                      type="button"
-                      onClick={() => decrement(product.id)}
-                      disabled={qty === 0}
-                      className="w-8 h-8 rounded-full border border-neutral-700 flex items-center justify-center text-lg disabled:opacity-40"
-                    >
-                      -
-                    </button>
-                    <span className="w-6 text-center text-sm">
-                      {qty}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => increment(product.id)}
-                      className="w-8 h-8 rounded-full border border-neutral-700 flex items-center justify-center text-lg"
-                    >
-                      +
-                    </button>
-                  </div>
+                </div>
+
+                <div className="park-qty-controls">
+                  <button
+                    type="button"
+                    onClick={() => decrement(product.id)}
+                    disabled={qty === 0}
+                    className={
+                      "park-qty-btn" +
+                      (qty === 0 ? " park-qty-btn-disabled" : "")
+                    }
+                  >
+                    −
+                  </button>
+                  <span className="park-qty-value">{qty}</span>
+                  <button
+                    type="button"
+                    onClick={() => increment(product.id)}
+                    className="park-qty-btn"
+                  >
+                    +
+                  </button>
                 </div>
               </li>
             );
@@ -360,45 +426,49 @@ export default function ParkClient({ areaSlug, area, products }: Props) {
         </ul>
       </section>
 
-      {/* פרטי לקוח + עגלה + סטטוס הזמנה */}
-      <section className="rounded-xl border border-neutral-800 bg-neutral-950 p-4 shadow-sm space-y-4">
-        <h2 className="text-lg font-semibold">פרטי ההזמנה</h2>
+      {/* פרטי הזמנה */}
+      <section className="park-card space-y-3">
+        <h2 className="park-card-title">פרטי ההזמנה</h2>
 
         <div className="space-y-3">
           <div>
-            <label className="block text-sm mb-1 text-neutral-300">
+            <label className="park-field-label">
               טלפון ליצירת קשר
             </label>
             <input
               type="tel"
               value={customerPhone}
               onChange={(e) => setCustomerPhone(e.target.value)}
-              className="w-full border border-neutral-700 bg-black rounded px-3 py-2 text-sm text-neutral-100"
+              className="park-input"
               placeholder="לדוגמה: 050-1234567"
             />
           </div>
 
           <div>
-            <label className="block text-sm mb-1 text-neutral-300">
-              הערה (איפה אתם יושבים / תיאור)
+            <label className="park-field-label">
+              איפה אתם יושבים?
             </label>
             <textarea
               value={customerNote}
               onChange={(e) => setCustomerNote(e.target.value)}
-              className="w-full border border-neutral-700 bg-black rounded px-3 py-2 text-sm text-neutral-100"
+              className="park-textarea"
               rows={2}
               placeholder='לדוגמה: "ליד המגלשה הצהובה"'
             />
           </div>
 
-          <div className="border-t border-neutral-800 pt-3 flex items-center justify-between text-sm text-neutral-200">
+          <div className="park-summary-row">
             <span>
               פריטים בעגלה:{" "}
-              <strong>{totalItems}</strong>
+              <span className="park-summary-value">
+                {totalItems}
+              </span>
             </span>
             <span>
               סכום כולל:{" "}
-              <strong>{formattedTotal}</strong>
+              <span className="park-summary-total">
+                {formattedTotal}
+              </span>
             </span>
           </div>
         </div>
@@ -407,7 +477,7 @@ export default function ParkClient({ areaSlug, area, products }: Props) {
           type="button"
           onClick={handlePlaceOrder}
           disabled={isOrderButtonDisabled}
-          className="w-full mt-2 px-4 py-2 rounded bg-emerald-600 text-white text-sm font-medium disabled:bg-neutral-600"
+          className="park-order-button"
         >
           {isPlacingOrder
             ? "שולח הזמנה..."
@@ -421,63 +491,249 @@ export default function ParkClient({ areaSlug, area, products }: Props) {
         </button>
 
         {orderError && (
-          <p className="mt-2 text-sm text-red-400">{orderError}</p>
+          <p className="park-order-error">{orderError}</p>
         )}
 
-        {/* {orderResult && (
-          <div className="mt-3 text-sm bg-emerald-950 border border-emerald-700 p-2 rounded text-emerald-100">
-            <div>✅ ההזמנה נשלחה!</div>
-            <div>מספר הזמנה: {orderResult.orderId}</div>
-            <div>
-              סכום:{" "}
-              {(orderResult.totalAmount / 100).toFixed(2)} ₪
-            </div>
-          </div>
-        )} */}
-
         {orderResult && (
-          <div className="mt-3 text-sm bg-emerald-950 border border-emerald-700 p-2 rounded text-emerald-100">
+          <div className="park-order-success">
             <div>✅ ההזמנה נשלחה!</div>
             <div>מספר הזמנה: {orderResult.orderId}</div>
             <div>
               סכום: {(orderResult.totalAmount / 100).toFixed(2)} ₪
             </div>
-
-            {/* 👇 חדש: הכנה ללינק תשלום בביט */}
-            {orderResult.paymentUrl ? (
-              <a
-                href={orderResult.paymentUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-2 inline-block text-xs text-emerald-300 underline"
-              >
-                תשלום אונליין (ביט)
-              </a>
-            ) : (
-              <div className="mt-2 text-xs text-neutral-300">
-                התשלום יתבצע כרגע במזומן מול השליח.
-              </div>
-            )}
-          </div>
-        )}
-
-
-        {activeOrderId && (
-          <div className="mt-3 text-sm bg-neutral-900 border border-neutral-700 p-2 rounded">
-            <div className="font-semibold mb-1">
-              סטטוס ההזמנה שלך:
-            </div>
-            <div className="text-neutral-200">
-              {statusLabel}
-            </div>
           </div>
         )}
       </section>
 
-      <p className="text-xs bg-neutral-900 border border-neutral-800 p-2 inline-block rounded text-neutral-400">
+      {/* debug קטן אם אתה רוצה להשאיר */}
+      <p className="park-debug">
         Geolocation: {geoStatus} | Allowed:{" "}
         {allowed === null ? "unknown" : allowed ? "yes" : "no"}
       </p>
-    </main>
-  );
+    </div>
+
+    {/* בר תחתון במובייל לעגלה */}
+    {totalItems > 0 && (
+      <div className="park-bottom-bar">
+        <div className="park-bottom-bar-inner">
+          <div className="park-bottom-bar-text">
+            <span>
+              {totalItems} פריטים •{" "}
+              <span className="font-semibold text-emerald-300">
+                {formattedTotal}
+              </span>
+            </span>
+            {!customerPhone.trim() && (
+              <span className="park-bottom-bar-note">
+                יש להכניס מספר טלפון לפני ביצוע ההזמנה
+              </span>
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={handlePlaceOrder}
+            disabled={isOrderButtonDisabled}
+            className="park-bottom-bar-button"
+          >
+            הזמן עכשיו
+          </button>
+        </div>
+      </div>
+    )}
+  </main>
+);
+
+  // return (
+  //   <main className="screen-root park-layout">
+  //     <header className="park-header">
+  //       <h1 className="park-title">{area.name}</h1>
+  //       <p className="park-subtitle">
+  //         גינה: <span className="font-mono">{areaSlug}</span>
+  //       </p>
+  //     </header>
+
+  //     {/* תפריט מוצרים */}
+  //     <section className="card space-y-4">
+  //       <div className="card-header">
+  //         <h2 className="card-title">תפריט</h2>
+  //         <span className="card-subtitle">
+  //           בחרו משקאות ונשנושים, אנחנו בדרך אליכם
+  //         </span>
+  //       </div>
+
+  //       {allowed === false && (
+  //         <p className="text-sm text-red-400">
+  //           {locationError ?? "אי אפשר להזמין מהמיקום הנוכחי שלך."}
+  //         </p>
+  //       )}
+
+  //       {allowed === null && (
+  //         <p className="text-sm text-neutral-400">
+  //           בודק את המיקום שלך...
+  //         </p>
+  //       )}
+
+  //       <ul className="park-products-list">
+  //         {products.map((product) => {
+  //           const qty = cart[product.id] ?? 0;
+
+  //           return (
+  //             <li key={product.id} className="park-product-row">
+  //               <div className="park-product-main">
+  //                 <div className="park-product-title">
+  //                   {product.name}
+  //                 </div>
+  //                 {product.description && (
+  //                   <div className="park-product-desc">
+  //                     {product.description}
+  //                   </div>
+  //                 )}
+  //                 <div className="text-sm text-neutral-200 mt-1">
+  //                   {(product.price / 100).toFixed(2)} ₪
+  //                 </div>
+  //               </div>
+
+  //               <div className="qty-controls">
+  //                 <button
+  //                   type="button"
+  //                   onClick={() => decrement(product.id)}
+  //                   disabled={qty === 0}
+  //                   className="btn qty-btn disabled:opacity-40"
+  //                 >
+  //                   -
+  //                 </button>
+  //                 <span className="qty-value">{qty}</span>
+  //                 <button
+  //                   type="button"
+  //                   onClick={() => increment(product.id)}
+  //                   className="btn qty-btn"
+  //                 >
+  //                   +
+  //                 </button>
+  //               </div>
+  //             </li>
+  //           );
+  //         })}
+  //       </ul>
+  //     </section>
+
+  //     {/* פרטי הזמנה */}
+  //     <section className="card space-y-4">
+  //       <h2 className="card-title">פרטי ההזמנה</h2>
+
+  //       <div className="space-y-3">
+  //         <div>
+  //           <label className="block text-sm mb-1 text-neutral-300">
+  //             טלפון ליצירת קשר
+  //           </label>
+  //           <input
+  //             type="tel"
+  //             value={customerPhone}
+  //             onChange={(e) => setCustomerPhone(e.target.value)}
+  //             className="w-full border border-neutral-700 bg-black rounded px-3 py-2 text-sm text-neutral-100"
+  //             placeholder="לדוגמה: 050-1234567"
+  //           />
+  //         </div>
+
+  //         <div>
+  //           <label className="block text-sm mb-1 text-neutral-300">
+  //             הערה (איפה אתם יושבים / תיאור)
+  //           </label>
+  //           <textarea
+  //             value={customerNote}
+  //             onChange={(e) => setCustomerNote(e.target.value)}
+  //             className="w-full border border-neutral-700 bg-black rounded px-3 py-2 text-sm text-neutral-100"
+  //             rows={2}
+  //             placeholder='לדוגמה: "ליד המגלשה הצהובה"'
+  //           />
+  //         </div>
+
+  //         <div className="order-summary-row">
+  //           <span>
+  //             פריטים בעגלה: <strong>{totalItems}</strong>
+  //           </span>
+  //           <span>
+  //             סכום כולל: <strong>{formattedTotal}</strong>
+  //           </span>
+  //         </div>
+  //       </div>
+
+  //       <button
+  //         type="button"
+  //         onClick={handlePlaceOrder}
+  //         disabled={isOrderButtonDisabled}
+  //         className="btn btn-primary w-full"
+  //       >
+  //         {isPlacingOrder
+  //           ? "שולח הזמנה..."
+  //           : !canOrder
+  //           ? "לא ניתן להזמין מהמיקום הנוכחי"
+  //           : totalItems === 0
+  //           ? "בחר פריטים להזמנה"
+  //           : !customerPhone.trim()
+  //           ? "הכנס מספר טלפון"
+  //           : "ביצוע הזמנה"}
+  //       </button>
+
+  //       {orderError && (
+  //         <p className="mt-2 text-sm text-red-400">{orderError}</p>
+  //       )}
+
+  //       {orderResult && (
+  //         <div className="mt-3 text-sm bg-emerald-950 border border-emerald-700 p-2 rounded text-emerald-100">
+  //           <div>✅ ההזמנה נשלחה!</div>
+  //           <div>מספר הזמנה: {orderResult.orderId}</div>
+  //           <div>
+  //             סכום: {(orderResult.totalAmount / 100).toFixed(2)} ₪
+  //           </div>
+  //         </div>
+  //       )}
+
+  //       {activeOrderId && (
+  //         <div className="mt-3 text-sm bg-neutral-900 border border-neutral-700 p-2 rounded">
+  //           <div className="font-semibold mb-1">
+  //             סטטוס ההזמנה שלך:
+  //           </div>
+  //           <div className="text-neutral-200">
+  //             {statusLabel}
+  //           </div>
+  //         </div>
+  //       )}
+  //     </section>
+
+  //     {/* Debug קטן אם בא לך */}
+  //     <p className="text-xs bg-neutral-900 border border-neutral-800 p-2 inline-block rounded text-neutral-400">
+  //       Geolocation: {geoStatus} | Allowed:{" "}
+  //       {allowed === null ? "unknown" : allowed ? "yes" : "no"}
+  //     </p>
+
+  //     {/* בר תחתון במובייל */}
+  //     {totalItems > 0 && (
+  //       <div className="bottom-bar">
+  //         <div className="bottom-bar-text">
+  //           <div>
+  //             {totalItems} פריטים •{" "}
+  //             <span className="bottom-bar-amount">
+  //               {formattedTotal}
+  //             </span>
+  //           </div>
+  //           {!customerPhone.trim() && (
+  //             <div className="text-[10px] text-red-300">
+  //               יש להכניס מספר טלפון לפני ביצוע ההזמנה
+  //             </div>
+  //           )}
+  //         </div>
+  //         <button
+  //           type="button"
+  //           onClick={handlePlaceOrder}
+  //           disabled={isOrderButtonDisabled}
+  //           className="btn btn-primary px-4 py-2"
+  //         >
+  //           הזמן עכשיו
+  //         </button>
+  //       </div>
+  //     )}
+  //   </main>
+  // );
 }
