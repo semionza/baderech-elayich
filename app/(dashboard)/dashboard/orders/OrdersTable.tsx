@@ -181,7 +181,7 @@ export default function OrdersTable({
             className={`px-3 py-1 text-sm rounded border ${
               statusFilter === f.value || (!statusFilter && f.value === "")
                 ? "bg-emerald-600 text-white border-emerald-600"
-                : "bg-white hover:bg-slate-100"
+                : "bg-neutral-800 hover:bg-emerald-600 border-emerald-600"
             }`}
           >
             {f.label}
@@ -191,68 +191,68 @@ export default function OrdersTable({
         <button
           onClick={handleRefresh}
           disabled={isPending}
-          className="ml-auto px-3 py-1 text-sm rounded bg-slate-200 hover:bg-slate-300 disabled:opacity-50"
+          className="ml-auto px-3 py-1 text-sm rounded bg-emerald-600 hover:bg-emerald-600 border-emerald-600 disabled:opacity-50"
         >
           {isPending ? "מרענן..." : "רענן"}
         </button>
       </div>
 
       {/* טבלה */}
-      <div className="overflow-x-auto">
-        <table className="min-w-full text-sm border-collapse">
-          <thead className="bg-slate-50">
+      <div className="table-wrapper">
+        <table className="table">
+          <thead className="table-head">
             <tr>
-              <th className="text-right p-2 border-b">#</th>
-              <th className="text-right p-2 border-b">זמן</th>
-              <th className="text-right p-2 border-b">אזור</th>
-              <th className="text-right p-2 border-b">טלפון</th>
-              <th className="text-right p-2 border-b">פריטים</th>
-              <th className="text-right p-2 border-b">סכום</th>
-              <th className="text-right p-2 border-b">סטטוס</th>
-              <th className="text-right p-2 border-b">תשלום</th>
-              <th className="text-right p-2 border-b">פעולות</th>
+              <th className="table-th">#</th>
+              <th className="table-th">זמן</th>
+              <th className="table-th">אזור</th>
+              <th className="table-th">טלפון</th>
+              <th className="table-th hidden sm:table-cell">פריטים</th>
+              <th className="table-th">סכום</th>
+              <th className="table-th">סטטוס</th>
+              <th className="table-th">תשלום</th>
+              <th className="table-th">פעולות</th>
             </tr>
           </thead>
           <tbody>
             {orders.map((order, idx) => (
-              <tr key={order.id} className="hover:bg-slate-50 align-top">
-                <td className="p-2 border-b text-slate-500">{idx + 1}</td>
-                <td className="p-2 border-b whitespace-nowrap">
+              <tr key={order.id} className="hover:bg-neutral-900">
+                <td className="table-td text-neutral-500">{idx + 1}</td>
+                <td className="table-td whitespace-nowrap">
                   {formatDateTime(order.created_at)}
                 </td>
-                <td className="p-2 border-b whitespace-nowrap">
+                <td className="table-td whitespace-nowrap text-xs sm:text-sm">
                   {order.service_areas?.[0]?.name ?? "-"}
-                  <div className="text-xs text-slate-400">
+                  <div className="text-[10px] text-neutral-500">
                     {order.service_areas?.[0]?.slug}
                   </div>
                 </td>
-                <td className="p-2 border-b whitespace-nowrap">
+                <td className="table-td whitespace-nowrap text-xs sm:text-sm">
                   {order.customer_phone}
                   {order.customer_note && (
-                    <div className="text-xs text-slate-500 mt-1">
+                    <div className="text-[10px] text-neutral-400 mt-1">
                       {order.customer_note}
                     </div>
                   )}
                 </td>
-                <td className="p-2 border-b">
+                <td className="table-td hidden sm:table-cell">
                   <ul className="space-y-1">
                     {order.order_items.map((item, i) => (
                       <li key={i} className="flex justify-between">
-                        <span className="text-slate-700">{item.name}</span>
-                        <span className="text-slate-500">× {item.quantity}</span>
+                        <span className="text-white">{item.name}</span>
+                        <span className="text-white">× {item.quantity}</span>
                       </li>
                     ))}
                   </ul>
                 </td>
-                <td className="p-2 border-b whitespace-nowrap font-semibold">
+                <td className="table-td hidden sm:table-cell">
                   {formatAmount(order.total_amount)}
                 </td>
-                <td className="p-2 border-b">
-                  <span className="inline-block px-2 py-1 text-xs rounded bg-slate-100">
+                <td className="table-td hidden sm:table-cell">
+                  <span className="inline-block px-2 py-1 text-xs rounded bg-emerald-600">
                     {STATUS_LABELS[order.status] || order.status}
                   </span>
                 </td>
-                <td className="p-2 border-b border-neutral-800">
+                <td className="table-td hidden sm:table-cell">
                   <div className="flex flex-col gap-1 items-start">
                     <span
                       className={`inline-block px-2 py-1 text-xs rounded ${
@@ -278,7 +278,7 @@ export default function OrdersTable({
                     )}
                   </div>
                 </td>
-                <td className="p-2 border-b">{renderActions(order)}</td>
+                <td className="table-td hidden sm:table-cell">{renderActions(order)}</td>
               </tr>
             ))}
           </tbody>
