@@ -3,6 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useTransition, useState } from "react";
 
+function buildGoogleMapsUrl(lat: number, lng: number) {
+  return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+}
+
 type WaiterOrderRow = {
   id: string;
   created_at: string;
@@ -192,9 +196,12 @@ export default function WaiterView({ orders }: { orders: WaiterOrderRow[] }) {
               <div className="border-t border-neutral-800 pt-2 text-xs space-y-1">
                 <div>
                   טלפון לקוח:{" "}
-                  <span className="font-mono">
+                  <a
+                    href={`tel:${order.customer_phone}`}
+                    className="font-mono text-emerald-300 underline"
+                  >
                     {order.customer_phone}
-                  </span>
+                  </a>
                 </div>
                 {order.customer_note && (
                   <div>
@@ -208,7 +215,17 @@ export default function WaiterView({ orders }: { orders: WaiterOrderRow[] }) {
                   <div>
                     מיקום: {order.lat.toFixed(5)},{" "}
                     {order.lng.toFixed(5)}
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        <a
+                          href={buildGoogleMapsUrl(order.lat, order.lng)}
+                          target="_blank"
+                          className="btn btn-outline text-xs px-3 py-1"
+                        >
+                          ניווט ב-Google Maps
+                        </a>
+                      </div>
                   </div>
+
                 )}
               </div>
 
