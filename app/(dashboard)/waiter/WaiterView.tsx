@@ -118,6 +118,25 @@ export default function WaiterView({ orders }: { orders: WaiterOrderRow[] }) {
 
   return (
     <div className="space-y-3">
+
+      <header className="mb-3 flex items-center justify-between gap-2">
+        <div>
+          <h1 className="text-lg font-semibold">מסך מלצר</h1>
+          <p className="text-xs text-neutral-400">
+            הזמנות פתוחות לגינה הנוכחית
+          </p>
+        </div>
+
+        <a
+          href="/bit-qr.jpeg"
+          target="_blank"
+          rel="noreferrer"
+          className="btn btn-ghost text-xs px-3 py-1"
+        >
+          הצג QR לתשלום בביט
+        </a>
+      </header>
+
       <div className="flex items-center justify-between mb-1">
         <span className="text-sm text-neutral-400">
           {orders.length} הזמנות ממתינות
