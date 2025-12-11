@@ -298,50 +298,13 @@ export default function ParkClient({ areaSlug, area, products }: Props) {
   };
 }, [activeOrderId]);
 
-  // useEffect(() => {
-  //   if (!activeOrderId) return;
-
-  //   let cancelled = false;
-  //   let intervalId: number | undefined;
-
-  //   const fetchStatus = async () => {
-  //     try {
-  //       const res = await fetch(`/api/orders/${activeOrderId}`);
-  //       const data = await res.json();
-
-  //       if (!res.ok) {
-  //         console.error("Status fetch error:", data);
-  //         return;
-  //       }
-
-  //       if (!cancelled) {
-  //         setActiveOrderStatus(data.status);
-  //         // אם סופק או בוטל – אפשר לעצור מעקב
-  //         if (data.status === "DELIVERED" || data.status === "CANCELLED") {
-  //           // אפשר להשאיר את הסטטוס על המסך, אבל להפסיק polling
-  //           if (intervalId) {
-  //             clearInterval(intervalId);
-  //           }
-  //         }
-  //       }
-  //     } catch (e) {
-  //       console.error("Status polling error:", e);
-  //     }
-  //   };
-
-  //   // נעדכן מיד ואז כל 10 שניות
-  //   fetchStatus();
-  //   intervalId = window.setInterval(fetchStatus, 10000);
-
-  //   return () => {
-  //     cancelled = true;
-  //     if (intervalId) clearInterval(intervalId);
-  //   };
-  // }, [activeOrderId]);
-
   const statusLabel =
     (activeOrderStatus && STATUS_LABELS[activeOrderStatus]) ||
     (activeOrderId ? "בודק סטטוס..." : null);
+
+  const BIT_PAY_URL =
+  "https://www.bitpay.co.il/app/me/8C3D0869-135B-BB92-F273-8E81611AAF31ABCC";
+
 
   // ========== UI ==========
 
@@ -490,6 +453,15 @@ export default function ParkClient({ areaSlug, area, products }: Props) {
             : "ביצוע הזמנה"}
         </button>
 
+        <a
+          href={BIT_PAY_URL}
+          target="_blank"
+          rel="noreferrer"
+          className="btn btn-ghost mt-2 inline-flex w-full items-center justify-center rounded-xl border border-emerald-500/60 bg-transparent px-4 py-2 text-xs font-medium text-emerald-300 hover:bg-emerald-950/60"
+        >
+          תשלום בביט (פתיחת מסך התשלום באפליקציית Bit)
+        </a>
+
         {orderError && (
           <p className="park-order-error">{orderError}</p>
         )}
@@ -544,196 +516,4 @@ export default function ParkClient({ areaSlug, area, products }: Props) {
   </main>
 );
 
-  // return (
-  //   <main className="screen-root park-layout">
-  //     <header className="park-header">
-  //       <h1 className="park-title">{area.name}</h1>
-  //       <p className="park-subtitle">
-  //         גינה: <span className="font-mono">{areaSlug}</span>
-  //       </p>
-  //     </header>
-
-  //     {/* תפריט מוצרים */}
-  //     <section className="card space-y-4">
-  //       <div className="card-header">
-  //         <h2 className="card-title">תפריט</h2>
-  //         <span className="card-subtitle">
-  //           בחרו משקאות ונשנושים, אנחנו בדרך אליכם
-  //         </span>
-  //       </div>
-
-  //       {allowed === false && (
-  //         <p className="text-sm text-red-400">
-  //           {locationError ?? "אי אפשר להזמין מהמיקום הנוכחי שלך."}
-  //         </p>
-  //       )}
-
-  //       {allowed === null && (
-  //         <p className="text-sm text-neutral-400">
-  //           בודק את המיקום שלך...
-  //         </p>
-  //       )}
-
-  //       <ul className="park-products-list">
-  //         {products.map((product) => {
-  //           const qty = cart[product.id] ?? 0;
-
-  //           return (
-  //             <li key={product.id} className="park-product-row">
-  //               <div className="park-product-main">
-  //                 <div className="park-product-title">
-  //                   {product.name}
-  //                 </div>
-  //                 {product.description && (
-  //                   <div className="park-product-desc">
-  //                     {product.description}
-  //                   </div>
-  //                 )}
-  //                 <div className="text-sm text-neutral-200 mt-1">
-  //                   {(product.price / 100).toFixed(2)} ₪
-  //                 </div>
-  //               </div>
-
-  //               <div className="qty-controls">
-  //                 <button
-  //                   type="button"
-  //                   onClick={() => decrement(product.id)}
-  //                   disabled={qty === 0}
-  //                   className="btn qty-btn disabled:opacity-40"
-  //                 >
-  //                   -
-  //                 </button>
-  //                 <span className="qty-value">{qty}</span>
-  //                 <button
-  //                   type="button"
-  //                   onClick={() => increment(product.id)}
-  //                   className="btn qty-btn"
-  //                 >
-  //                   +
-  //                 </button>
-  //               </div>
-  //             </li>
-  //           );
-  //         })}
-  //       </ul>
-  //     </section>
-
-  //     {/* פרטי הזמנה */}
-  //     <section className="card space-y-4">
-  //       <h2 className="card-title">פרטי ההזמנה</h2>
-
-  //       <div className="space-y-3">
-  //         <div>
-  //           <label className="block text-sm mb-1 text-neutral-300">
-  //             טלפון ליצירת קשר
-  //           </label>
-  //           <input
-  //             type="tel"
-  //             value={customerPhone}
-  //             onChange={(e) => setCustomerPhone(e.target.value)}
-  //             className="w-full border border-neutral-700 bg-black rounded px-3 py-2 text-sm text-neutral-100"
-  //             placeholder="לדוגמה: 050-1234567"
-  //           />
-  //         </div>
-
-  //         <div>
-  //           <label className="block text-sm mb-1 text-neutral-300">
-  //             הערה (איפה אתם יושבים / תיאור)
-  //           </label>
-  //           <textarea
-  //             value={customerNote}
-  //             onChange={(e) => setCustomerNote(e.target.value)}
-  //             className="w-full border border-neutral-700 bg-black rounded px-3 py-2 text-sm text-neutral-100"
-  //             rows={2}
-  //             placeholder='לדוגמה: "ליד המגלשה הצהובה"'
-  //           />
-  //         </div>
-
-  //         <div className="order-summary-row">
-  //           <span>
-  //             פריטים בעגלה: <strong>{totalItems}</strong>
-  //           </span>
-  //           <span>
-  //             סכום כולל: <strong>{formattedTotal}</strong>
-  //           </span>
-  //         </div>
-  //       </div>
-
-  //       <button
-  //         type="button"
-  //         onClick={handlePlaceOrder}
-  //         disabled={isOrderButtonDisabled}
-  //         className="btn btn-primary w-full"
-  //       >
-  //         {isPlacingOrder
-  //           ? "שולח הזמנה..."
-  //           : !canOrder
-  //           ? "לא ניתן להזמין מהמיקום הנוכחי"
-  //           : totalItems === 0
-  //           ? "בחר פריטים להזמנה"
-  //           : !customerPhone.trim()
-  //           ? "הכנס מספר טלפון"
-  //           : "ביצוע הזמנה"}
-  //       </button>
-
-  //       {orderError && (
-  //         <p className="mt-2 text-sm text-red-400">{orderError}</p>
-  //       )}
-
-  //       {orderResult && (
-  //         <div className="mt-3 text-sm bg-emerald-950 border border-emerald-700 p-2 rounded text-emerald-100">
-  //           <div>✅ ההזמנה נשלחה!</div>
-  //           <div>מספר הזמנה: {orderResult.orderId}</div>
-  //           <div>
-  //             סכום: {(orderResult.totalAmount / 100).toFixed(2)} ₪
-  //           </div>
-  //         </div>
-  //       )}
-
-  //       {activeOrderId && (
-  //         <div className="mt-3 text-sm bg-neutral-900 border border-neutral-700 p-2 rounded">
-  //           <div className="font-semibold mb-1">
-  //             סטטוס ההזמנה שלך:
-  //           </div>
-  //           <div className="text-neutral-200">
-  //             {statusLabel}
-  //           </div>
-  //         </div>
-  //       )}
-  //     </section>
-
-  //     {/* Debug קטן אם בא לך */}
-  //     <p className="text-xs bg-neutral-900 border border-neutral-800 p-2 inline-block rounded text-neutral-400">
-  //       Geolocation: {geoStatus} | Allowed:{" "}
-  //       {allowed === null ? "unknown" : allowed ? "yes" : "no"}
-  //     </p>
-
-  //     {/* בר תחתון במובייל */}
-  //     {totalItems > 0 && (
-  //       <div className="bottom-bar">
-  //         <div className="bottom-bar-text">
-  //           <div>
-  //             {totalItems} פריטים •{" "}
-  //             <span className="bottom-bar-amount">
-  //               {formattedTotal}
-  //             </span>
-  //           </div>
-  //           {!customerPhone.trim() && (
-  //             <div className="text-[10px] text-red-300">
-  //               יש להכניס מספר טלפון לפני ביצוע ההזמנה
-  //             </div>
-  //           )}
-  //         </div>
-  //         <button
-  //           type="button"
-  //           onClick={handlePlaceOrder}
-  //           disabled={isOrderButtonDisabled}
-  //           className="btn btn-primary px-4 py-2"
-  //         >
-  //           הזמן עכשיו
-  //         </button>
-  //       </div>
-  //     )}
-  //   </main>
-  // );
 }

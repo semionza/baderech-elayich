@@ -33,6 +33,7 @@ export default async function ParkPage({
     .from("products")
     .select("id, name, price, description, image_url")
     .eq("vendor_id", area.vendor_id)
+    .eq("service_area_id", area.id)
     .eq("is_active", true)
     .order("sort_order", { ascending: true });
 
