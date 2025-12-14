@@ -1,6 +1,8 @@
 // app/api/orders/[orderId]/route.ts
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
+import { sendSms } from "@/lib/sms";
+import { createInvoiceForOrder } from "@/lib/invoices";
 
 /**
  * GET /api/orders/[orderId]
@@ -179,7 +181,7 @@ export async function PATCH(
       .eq("id", orderId)
       .eq("vendor_id", staff.vendor_id)
       .eq("service_area_id", staff.service_area_id)
-      .select("id, status, payment_status, updated_at")
+      .select("id, status, payment_status, customer_phone, total_amount, updated_at, created_at")
       .maybeSingle();
 
     if (error) {
@@ -195,6 +197,38 @@ export async function PATCH(
         { error: "Order not found for this vendor/area" },
         { status: 404 }
       );
+    }
+
+    // ⭐⭐⭐ כאן מוסיפים SMS ⭐⭐⭐
+
+    if (data) {
+      // הודעה על תשלום שהתקבל
+      if (updateData.payment_status === "PAID") {
+        try {
+          const invoice = await createInvoiceForOrder({
+            id: data.id,
+            total_amount: data.total_amount,
+            customer_phone: data.customer_phone ?? null,
+            created_at: data.created_at ?? null,
+          });
+
+          const text = `התשלום עבור ההזמנה שלך התקבל. חשבונית/קבלה: ${invoice.url}`;
+          await sendSms(data.customer_phone, text);
+        } catch (e) {
+          console.error("Error creating invoice or sending SMS:", e);
+          // לא מפילים את הבקשה – פשוט ממשיכים, אבל לוג
+        }
+      }
+
+      // אם סטטוס עודכן ל-DELIVERED → SMS על כך שההזמנה סופקה
+      if (updateData.status === "DELIVERED") {
+        try {
+          const text = `ההזמנה שלך סופקה. תודה שבחרת ב'בדרך אליך'!`;
+          await sendSms(data.customer_phone, text);
+        } catch (e) {
+          console.error("Error sending delivered SMS:", e);
+        }
+      }
     }
 
     return NextResponse.json(

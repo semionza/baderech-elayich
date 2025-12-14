@@ -1,6 +1,7 @@
 // app/api/sms/payment-confirmation/route.ts
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabaseClient";
+import { sendSms } from "@/lib/sms";
 
 export async function POST(req: Request) {
   try {
@@ -29,10 +30,8 @@ export async function POST(req: Request) {
     }
 
     // כאן בעתיד תתחבר לספק SMS אמיתי (Twilio / אחר)
-    console.log(
-      `[SMS STUB] Sending SMS to ${order.customer_phone}: ` +
-        `"התשלום עבור ההזמנה שלך התקבל. תודה!" (order ${order.id})`
-    );
+    const text = `התשלום על ההזמנה שלך התקבל. תודה רבה!`;
+    await sendSms(order.customer_phone, text);
 
     return NextResponse.json({ ok: true }, { status: 200 });
   } catch (e) {
