@@ -108,7 +108,7 @@ export default function WaiterView({ orders }: { orders: WaiterOrderRow[] }) {
         <button
           onClick={refresh}
           disabled={isPending}
-          className="ml-2 px-3 py-1 text-xs rounded bg-neutral-800 hover:bg-neutral-700"
+          className="btn-outline ml-2 px-3 py-1 text-xs rounded bg-neutral-800 hover:bg-neutral-700"
         >
           רענון
         </button>
@@ -121,9 +121,9 @@ export default function WaiterView({ orders }: { orders: WaiterOrderRow[] }) {
 
       <header className="mb-3 flex items-center justify-between gap-2">
         <div>
-          <h1 className="text-lg font-semibold">מסך מלצר</h1>
+          <h1 className="text-lg font-semibold">הזמנות לספק</h1>
           <p className="text-xs text-neutral-400">
-            הזמנות פתוחות לגינה הנוכחית
+            הזמנות פתוחות באזור השירות שלך
           </p>
         </div>
 
@@ -144,7 +144,7 @@ export default function WaiterView({ orders }: { orders: WaiterOrderRow[] }) {
         <button
           onClick={refresh}
           disabled={isPending}
-          className="px-3 py-1 text-xs rounded bg-neutral-800 hover:bg-neutral-700 disabled:opacity-50"
+          className="btn-outline px-3 py-1 text-xs rounded bg-neutral-800 hover:bg-neutral-700 disabled:opacity-50"
         >
           {isPending ? "מרענן..." : "רענן"}
         </button>
@@ -256,7 +256,7 @@ export default function WaiterView({ orders }: { orders: WaiterOrderRow[] }) {
                       updateOrder(order.id, { status: "ON_THE_WAY" })
                     }
                     disabled={isBusy}
-                    className="flex-1 px-2 py-2 rounded bg-blue-600 hover:bg-blue-500 disabled:bg-neutral-700"
+                    className="btn-outline flex-1 px-2 py-2 rounded bg-blue-600 hover:bg-blue-500 disabled:bg-neutral-700"
                   >
                     אני בדרך
                   </button>
@@ -273,7 +273,7 @@ export default function WaiterView({ orders }: { orders: WaiterOrderRow[] }) {
                       disabled={
                         isBusy || order.payment_status === "PAID"
                       }
-                      className="flex-1 px-2 py-2 rounded bg-emerald-600 hover:bg-emerald-500 disabled:bg-neutral-700"
+                      className="btn-outline flex-1 px-2 py-2 rounded bg-emerald-600 hover:bg-emerald-500 disabled:bg-neutral-700"
                     >
                       קיבלתי מזומן
                     </button>
@@ -294,7 +294,7 @@ export default function WaiterView({ orders }: { orders: WaiterOrderRow[] }) {
                         )
                       }
                       disabled={isBusy}
-                      className="flex-1 px-2 py-2 rounded bg-purple-600 hover:bg-purple-500 disabled:bg-neutral-700"
+                      className="btn-outline flex-1 px-2 py-2 rounded bg-purple-600 hover:bg-purple-500 disabled:bg-neutral-700"
                     >
                       סופק + SMS
                     </button>
@@ -307,7 +307,7 @@ export default function WaiterView({ orders }: { orders: WaiterOrderRow[] }) {
                       updateOrder(order.id, { status: "ON_THE_WAY" })
                     }
                     disabled={isBusy}
-                    className="flex-1 px-2 py-2 rounded bg-blue-600 hover:bg-blue-500 disabled:bg-neutral-700"
+                    className="btn-outline flex-1 px-2 py-2 rounded bg-blue-600 hover:bg-blue-500 disabled:bg-neutral-700"
                   >
                     בדרך ללקוח
                   </button>
