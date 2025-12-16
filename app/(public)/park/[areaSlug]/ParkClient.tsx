@@ -315,29 +315,32 @@ export default function ParkClient({ areaSlug, area, products }: Props) {
       <header className="park-header">
         <h1 className="park-title">{area.name}</h1>
         <p className="park-subtitle">
-          גינה: <span className="font-mono">{areaSlug}</span>
+          אתם נמצאים באזור השירות: <span className="font-mono">{area.name}</span>
         </p>
       </header>
 
       {/* סטטוס מיקום */}
       {allowed === false && (
         <p className="park-geo-error">
-          {locationError ??
-            "אי אפשר להזמין מהמיקום הנוכחי שלך. נסה להתקרב לגינה או לאפשר גישה למיקום."}
+        לא הצלחנו לוודא את המיקום שלכם.  
+          אנא הפעילו GPS או התקדמו מעט בתוך הגינה.
         </p>
       )}
 
       {allowed === null && (
-        <p className="park-geo-info">בודק את המיקום שלך...</p>
+        <p className="park-geo-error">
+        נראה שאתם מחוץ לאזור השירות שלנו כרגע.  
+          השירות זמין רק בתוך הגינה.
+        </p>      
       )}
 
       {/* תפריט מוצרים */}
       <section className="park-card">
         <div className="park-card-header">
           <div>
-            <h2 className="park-card-title">תפריט</h2>
+            <h2 className="park-card-title">מה תרצו להזמין?</h2>
             <p className="park-card-subtitle">
-              בחרו מה להביא אליכם לגינה
+              אנחנו מגיעים עד אליכם — פשוט בחרו פריט אחד או יותר.
             </p>
           </div>
         </div>
@@ -396,7 +399,7 @@ export default function ParkClient({ areaSlug, area, products }: Props) {
         <div className="space-y-3">
           <div>
             <label className="park-field-label">
-              טלפון ליצירת קשר
+מספר טלפון — נשלח לכם עדכון כשההזמנה בדרך              
             </label>
             <input
               type="tel"
@@ -449,8 +452,8 @@ export default function ParkClient({ areaSlug, area, products }: Props) {
             : totalItems === 0
             ? "בחר פריטים להזמנה"
             : !customerPhone.trim()
-            ? "הכנס מספר טלפון"
-            : "ביצוע הזמנה"}
+            ? "נא להזין מספר טלפון"
+            : "שליחה — אנחנו בדרך אליכם!"}
         </button>
 
         <a
@@ -468,11 +471,9 @@ export default function ParkClient({ areaSlug, area, products }: Props) {
 
         {orderResult && (
           <div className="park-order-success">
-            <div>✅ ההזמנה נשלחה!</div>
+            <div>🎉 ההזמנה התקבלה!</div>
+            <div>אנחנו מתחילים בהכנה — נעדכן אתכם ברגע שהמלצר יוצא אליכם.</div>
             <div>מספר הזמנה: {orderResult.orderId}</div>
-            <div>
-              סכום: {(orderResult.totalAmount / 100).toFixed(2)} ₪
-            </div>
           </div>
         )}
       </section>
