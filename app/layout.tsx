@@ -23,12 +23,26 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
+    // <html lang="he" dir="rtl">
+    //   <body
+    //     className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+    //   >
+    //     {children}
+    //   </body>
+    // </html>
     <html lang="he" dir="rtl">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <head>
+        <link rel="manifest" href="/manifest.webmanifest" />
+        <meta name="theme-color" content="#000000" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+        <meta name="apple-mobile-web-app-title" content="בדרך אליך" />
+        <link rel="apple-touch-icon" href="/icons/coffee-shop_7673142.png" />
+      </head>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         {children}
       </body>
     </html>
+
   );
 }

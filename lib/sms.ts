@@ -36,7 +36,7 @@ export async function sendSms(to: string, message: string) {
   try {
     const result = await client.messages.create({
       body: message,
-      to: normalized,                                // customer phone number
+      to: normalized,                        // customer phone number
       ...(messagingServiceSid
         ? { messagingServiceSid }            // recommended for production
         : { from: fromNumber })              // fallback to raw number

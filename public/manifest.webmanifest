@@ -1,0 +1,22 @@
+{
+  "name": "בדרך אליך",
+  "short_name": "בדרך אליך",
+  "start_url": "/park/mada-park",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "lang": "he-IL",
+  "dir": "rtl",
+  "icons": [
+    {
+      "src": "/icons/coffee-shop_7673142.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/coffee-shop_9369284.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
