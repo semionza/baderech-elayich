@@ -23,7 +23,14 @@ type Props = {
   products: Product[];
 };
 
-type GeoStatus = "checking" | "granted" | "denied" | "not-supported";
+// type GeoStatus = "checking" | "granted" | "denied" | "not-supported";
+type GeoStatus =
+  | "idle"          // עוד לא בדקנו כלום
+  | "not-supported" // המכשיר לא תומך
+  | "requestable"   // יש תמיכה, צריך לחכות ללחיצה
+  | "requesting"    // כרגע מבקשים מיקום
+  | "granted"       // יש מיקום
+  | "denied";       // המשתמש סירב / תקלה
 
 const STATUS_LABELS: Record<string, string> = {
   PENDING: "הזמנה התקבלה",
@@ -34,8 +41,15 @@ const STATUS_LABELS: Record<string, string> = {
   CANCELLED: "ההזמנה בוטלה",
 };
 
+// export default function ParkClient({ areaSlug, area, products }: Props) {
+//   const [geoStatus, setGeoStatus] = useState<GeoStatus>("checking");
+//   const [allowed, setAllowed] = useState<null | boolean>(null);
+//   const [locationError, setLocationError] = useState<string | null>(null);
+//   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(
+//     null
+//   );
 export default function ParkClient({ areaSlug, area, products }: Props) {
-  const [geoStatus, setGeoStatus] = useState<GeoStatus>("checking");
+  const [geoStatus, setGeoStatus] = useState<GeoStatus>("idle");
   const [allowed, setAllowed] = useState<null | boolean>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(
@@ -58,20 +72,85 @@ export default function ParkClient({ areaSlug, area, products }: Props) {
   );
 
   // ========== גיאולוקציה + בדיקת אזור שירות ==========
+  // useEffect(() => {
+  //   if (!("geolocation" in navigator)) {
+  //     setGeoStatus("not-supported");
+  //     setLocationError("המכשיר לא תומך במיקום.");
+  //     return;
+  //   }
+
+  //   navigator.geolocation.getCurrentPosition(
+  //     async (pos) => {
+  //       setGeoStatus("granted");
+
+  //       const lat = pos.coords.latitude;
+  //       const lng = pos.coords.longitude;
+  //       setCoords({ lat, lng });
+
+  //       try {
+  //         const res = await fetch("/api/validate-location", {
+  //           method: "POST",
+  //           headers: { "Content-Type": "application/json" },
+  //           body: JSON.stringify({ areaSlug, lat, lng }),
+  //         });
+
+  //         const data = await res.json();
+
+  //         if (data.allowed) {
+  //           setAllowed(true);
+  //         } else {
+  //           setAllowed(false);
+  //           setLocationError(
+  //             "נראה שאתה מחוץ לאזור השירות של הגינה הזאת."
+  //           );
+  //         }
+  //       } catch (e) {
+  //         console.error(e);
+  //         setAllowed(false);
+  //         setLocationError("שגיאה בבדיקת המיקום.");
+  //       }
+  //     },
+  //     (err) => {
+  //       console.error("Geo error:", err);
+  //       setGeoStatus("denied");
+  //       setLocationError("לא ניתן לקבל אישור למיקום.");
+  //     }
+  //   );
+  // }, [areaSlug]);
+
+  // לבדוק תמיכה בגיאולוקציה בפעם הראשונה בלבד
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
     if (!("geolocation" in navigator)) {
       setGeoStatus("not-supported");
-      setLocationError("המכשיר לא תומך במיקום.");
+      setLocationError("המכשיר לא תומך בזיהוי מיקום.");
       return;
     }
 
+    // יש תמיכה – מחכים ללחיצה מפורשת מהמשתמש
+    setGeoStatus("requestable");
+  }, []);
+
+  const canOrder = geoStatus === "granted" && allowed === true;
+  
+  // --- בקשת מיקום בלחיצה (מוכן לאייפון) ---
+  async function handleRequestLocation() {
+    if (!("geolocation" in navigator)) {
+      setGeoStatus("not-supported");
+      setLocationError("המכשיר לא תומך בזיהוי מיקום.");
+      return;
+    }
+
+    setGeoStatus("requesting");
+    setLocationError(null);
+
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
-        setGeoStatus("granted");
-
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
         setCoords({ lat, lng });
+        setGeoStatus("granted");
 
         try {
           const res = await fetch("/api/validate-location", {
@@ -87,24 +166,33 @@ export default function ParkClient({ areaSlug, area, products }: Props) {
           } else {
             setAllowed(false);
             setLocationError(
-              "נראה שאתה מחוץ לאזור השירות של הגינה הזאת."
+              "נראה שאתם מחוץ לאזור השירות שלנו. השירות זמין רק בתוך הגינה."
             );
           }
         } catch (e) {
           console.error(e);
           setAllowed(false);
-          setLocationError("שגיאה בבדיקת המיקום.");
+          setLocationError("הייתה בעיה בבדיקת המיקום. נסו שוב מאוחר יותר.");
         }
       },
       (err) => {
         console.error("Geo error:", err);
         setGeoStatus("denied");
-        setLocationError("לא ניתן לקבל אישור למיקום.");
+
+        if (err.code === err.PERMISSION_DENIED) {
+          setLocationError(
+            "לא נתנה הרשאה למיקום. ניתן לאפשר מיקום דרך הגדרות הדפדפן / המכשיר ולנסות שוב."
+          );
+        } else {
+          setLocationError("לא הצלחנו לקבל את המיקום. נסו שוב.");
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
       }
     );
-  }, [areaSlug]);
-
-  const canOrder = geoStatus === "granted" && allowed === true;
+  }
 
   // ========== לוגיקת עגלה ==========
 
@@ -320,7 +408,7 @@ export default function ParkClient({ areaSlug, area, products }: Props) {
       </header>
 
       {/* סטטוס מיקום */}
-      {allowed === false && (
+      {/* {allowed === false && (
         <p className="park-geo-error">
         לא הצלחנו לוודא את המיקום שלכם.  
           אנא הפעילו GPS או התקדמו מעט בתוך הגינה.
@@ -332,7 +420,44 @@ export default function ParkClient({ areaSlug, area, products }: Props) {
         נראה שאתם מחוץ לאזור השירות שלנו כרגע.  
           השירות זמין רק בתוך הגינה.
         </p>      
-      )}
+      )} */}
+
+       {/* סטטוס מיקום + כפתור לאייפון */}
+        {geoStatus === "not-supported" && (
+          <p className="park-geo-error">
+            נראה שהמכשיר לא תומך בזיהוי מיקום. אפשר עדיין לעיין בתפריט, אבל לא נוכל להביא אליכם את ההזמנה.
+          </p>
+        )}
+
+        {(geoStatus === "idle" || geoStatus === "requestable" || geoStatus === "denied") && (
+          <div className="park-geo-info">
+            <div className="mb-1">
+              כדי שנוכל לבדוק שאתם בתוך הגינה ולהביא אליכם את ההזמנה, יש לאפשר גישה למיקום.
+            </div>
+            <button
+              type="button"
+              onClick={handleRequestLocation}
+              className="mt-1 inline-flex items-center justify-center rounded-lg bg-emerald-600 px-4 py-1.5 text-xs font-medium text-black"
+            >
+              אפשר מיקום
+            </button>
+            {geoStatus === "denied" && (
+              <div className="mt-1 text-[11px] text-neutral-300">
+                אם לא מופיעה בקשה להרשאת מיקום, ניתן לבדוק בהגדרות הדפדפן / המכשיר (במיוחד באייפון).
+              </div>
+            )}
+          </div>
+        )}
+
+        {geoStatus === "requesting" && (
+          <p className="park-geo-info">
+            בודקים את המיקום שלכם… אם לא מופיעה בקשה להרשאה, נסו שוב או בדקו את הגדרות המיקום במכשיר.
+          </p>
+        )}
+
+        {allowed === false && locationError && (
+          <p className="park-geo-error">{locationError}</p>
+        )}
 
       {/* תפריט מוצרים */}
       <section className="park-card">
