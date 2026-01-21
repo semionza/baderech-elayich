@@ -10,6 +10,7 @@ type DbProductRow = {
   description: string | null;
   is_active: boolean;
   service_area_id: string | null;
+  image_url: string | null;
 };
 
 export default async function ProductsPage() {
@@ -45,7 +46,7 @@ export default async function ProductsPage() {
   const { data: products, error: productsError } = await supabase
     .from("products")
     .select(
-      "id, name, price, description, is_active, service_area_id"
+      "id, name, price, description, is_active, service_area_id, image_url"
     )
     .eq("vendor_id", staff.vendor_id)
     .eq("service_area_id", staff.service_area_id)
@@ -62,6 +63,9 @@ export default async function ProductsPage() {
           <h1 className="screen-header-title">ניהול מוצרים</h1>
           <p className="screen-header-subtitle">
             גינה זו בלבד (לפי המשתמש המחובר)
+            {staff.service_area_id
+              ? ` - אזור שירות: ${staff.service_area_id}`
+              : " - כל האזורים"}
           </p>
         </div>
       </header>
@@ -70,6 +74,8 @@ export default async function ProductsPage() {
         <div className="card">
           <ProductsManager
             initialProducts={(products ?? []) as DbProductRow[]}
+            vendorSlug={staff.vendor_id}
+            areaSlug={staff.service_area_id}
           />
         </div>
       </section>

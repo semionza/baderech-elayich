@@ -41,13 +41,6 @@ const STATUS_LABELS: Record<string, string> = {
   CANCELLED: "ההזמנה בוטלה",
 };
 
-// export default function ParkClient({ areaSlug, area, products }: Props) {
-//   const [geoStatus, setGeoStatus] = useState<GeoStatus>("checking");
-//   const [allowed, setAllowed] = useState<null | boolean>(null);
-//   const [locationError, setLocationError] = useState<string | null>(null);
-//   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(
-//     null
-//   );
 export default function ParkClient({ areaSlug, area, products }: Props) {
   const [geoStatus, setGeoStatus] = useState<GeoStatus>("idle");
   const [allowed, setAllowed] = useState<null | boolean>(null);
@@ -70,53 +63,6 @@ export default function ParkClient({ areaSlug, area, products }: Props) {
   const [activeOrderStatus, setActiveOrderStatus] = useState<string | null>(
     null
   );
-
-  // ========== גיאולוקציה + בדיקת אזור שירות ==========
-  // useEffect(() => {
-  //   if (!("geolocation" in navigator)) {
-  //     setGeoStatus("not-supported");
-  //     setLocationError("המכשיר לא תומך במיקום.");
-  //     return;
-  //   }
-
-  //   navigator.geolocation.getCurrentPosition(
-  //     async (pos) => {
-  //       setGeoStatus("granted");
-
-  //       const lat = pos.coords.latitude;
-  //       const lng = pos.coords.longitude;
-  //       setCoords({ lat, lng });
-
-  //       try {
-  //         const res = await fetch("/api/validate-location", {
-  //           method: "POST",
-  //           headers: { "Content-Type": "application/json" },
-  //           body: JSON.stringify({ areaSlug, lat, lng }),
-  //         });
-
-  //         const data = await res.json();
-
-  //         if (data.allowed) {
-  //           setAllowed(true);
-  //         } else {
-  //           setAllowed(false);
-  //           setLocationError(
-  //             "נראה שאתה מחוץ לאזור השירות של הגינה הזאת."
-  //           );
-  //         }
-  //       } catch (e) {
-  //         console.error(e);
-  //         setAllowed(false);
-  //         setLocationError("שגיאה בבדיקת המיקום.");
-  //       }
-  //     },
-  //     (err) => {
-  //       console.error("Geo error:", err);
-  //       setGeoStatus("denied");
-  //       setLocationError("לא ניתן לקבל אישור למיקום.");
-  //     }
-  //   );
-  // }, [areaSlug]);
 
   // לבדוק תמיכה בגיאולוקציה בפעם הראשונה בלבד
   useEffect(() => {
@@ -488,6 +434,21 @@ export default function ParkClient({ areaSlug, area, products }: Props) {
                   <div className="park-product-price">
                     {(product.price / 100).toFixed(2)} ₪
                   </div>
+                  <div className="park-product-image-wrapper">
+                    {product.image_url ? (
+                      <a href={product.image_url} target="_blank" rel="noreferrer">
+                        <img
+                          src={product.image_url}
+                          alt={product.name}
+                          className="park-product-image"
+                        />
+                      </a>
+                    ) : (
+                      <div className="park-product-image-placeholder">
+                        אין תמונה
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="park-qty-controls">
@@ -537,14 +498,14 @@ export default function ParkClient({ areaSlug, area, products }: Props) {
 
           <div>
             <label className="park-field-label">
-              איפה אתם יושבים?
+              מיקומכם המדויק / כתובתכם (אופציונלי)
             </label>
             <textarea
               value={customerNote}
               onChange={(e) => setCustomerNote(e.target.value)}
               className="park-textarea"
               rows={2}
-              placeholder='לדוגמה: "ליד המגלשה הצהובה"'
+              placeholder='לדוגמה:"רח׳ הרצל 10 דירה 10" "ליד המגלשה הצהובה" '
             />
           </div>
 

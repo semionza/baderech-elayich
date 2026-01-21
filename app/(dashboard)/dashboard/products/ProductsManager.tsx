@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
 
 type DbProductRow = {
+  image_url: string | null;
   id: string;
   name: string;
   price: number;
@@ -13,8 +15,12 @@ type DbProductRow = {
 
 export default function ProductsManager({
   initialProducts,
+  vendorSlug,
+  areaSlug,
 }: {
   initialProducts: DbProductRow[];
+  vendorSlug: string;
+  areaSlug: string;
 }) {
   const [products, setProducts] = useState<DbProductRow[]>(initialProducts);
   const [name, setName] = useState("");
@@ -23,6 +29,7 @@ export default function ProductsManager({
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   const resetMessages = () => {
     setErrorMsg(null);
@@ -138,6 +145,45 @@ export default function ProductsManager({
     }
   }
 
+  async function uploadProductImage(params: {
+    productId: string;
+    file: File;
+    vendorSlug: string;      // או vendorId
+    areaSlug: string;
+  }) {
+    
+    const ext = params.file.name.split(".").pop() || "jpg";
+    const safeExt = ext.toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+
+    const path = `${params.vendorSlug}/${params.areaSlug}/${params.productId}/${Date.now()}.${safeExt}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("product-images")
+      .upload(path, params.file, {
+        cacheControl: "3600",
+        upsert: true,
+        contentType: params.file.type,
+      });
+
+    if (uploadError) throw uploadError;
+
+    const { data } = supabase.storage.from("product-images").getPublicUrl(path);
+    const publicUrl = data.publicUrl;
+
+    // עדכון המוצר בטבלה
+    const { error: dbError } = await supabase
+      .from("products")
+      .update({
+        image_path: path,
+        image_url: publicUrl, // אם אתה עדיין משתמש בזה בפרונט
+      })
+      .eq("id", params.productId);
+
+    if (dbError) throw dbError;
+
+    return { path, publicUrl };
+  }
+
   const sortedProducts = [...products].sort((a, b) =>
     a.name.localeCompare(b.name, "he")
   );
@@ -236,6 +282,8 @@ export default function ProductsManager({
               </th>
               <th className="table-th">סטטוס</th>
               <th className="table-th">פעולות</th>
+              <th className="table-th">צרף תמונת המוצר</th>
+              <th className="table-th">תמונות מצורפות</th>
             </tr>
           </thead>
           <tbody>
@@ -269,6 +317,55 @@ export default function ProductsManager({
                   >
                     {p.is_active ? "כבה" : "הפעל"}
                   </button>
+                </td>
+                <td className="table-td text-xs">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+
+                      try {
+                        setBusyId(p.id);
+                        
+                        const { publicUrl } = await uploadProductImage({
+                          productId: p.id,
+                          file,
+                          vendorSlug,
+                          areaSlug,
+                        });
+
+                        // עדכון סטייט מקומי כדי לראות מיד
+                        setProducts((prev) =>
+                          prev.map((pr) => (pr.id === p.id ? { ...pr, image_url: publicUrl } : pr))
+                        );
+
+                      } catch (err) {
+                        console.error(err);
+                        alert("העלאת תמונה נכשלה");
+                      } finally {
+                        setBusyId(null);
+                        e.target.value = "";
+                      }
+                    }}
+                  />
+                </td>
+                <td className="table-td text-xs">
+                  {p.image_url ? (
+                    <img
+                      src={p.image_url}
+                      alt={p.name}
+                      className="h-12 w-12 object-cover rounded"
+                    />
+                  ) : (
+                    <span className="text-neutral-500">אין תמונה</span>
+                  )}
+                  {busyId === p.id && (
+                    <div className="text-xs text-neutral-400">
+                      מעלה...
+                    </div>
+                  )}
                 </td>
               </tr>
             ))}
