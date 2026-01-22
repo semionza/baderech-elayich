@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
+import InstallAsAppButton from "@/app/components/InstallAsAppButton";
 
 type Area = {
   id: string;
@@ -351,22 +352,13 @@ export default function ParkClient({ areaSlug, area, products }: Props) {
         <p className="park-subtitle">
           אתם נמצאים באזור השירות: <span className="font-mono">{area.name}</span>
         </p>
+        {/* להתקין בתור אפליקציה */}
+        <div className="mt-3">
+          <InstallAsAppButton />
+        </div>
       </header>
 
-      {/* סטטוס מיקום */}
-      {/* {allowed === false && (
-        <p className="park-geo-error">
-        לא הצלחנו לוודא את המיקום שלכם.  
-          אנא הפעילו GPS או התקדמו מעט בתוך הגינה.
-        </p>
-      )}
 
-      {allowed === null && (
-        <p className="park-geo-error">
-        נראה שאתם מחוץ לאזור השירות שלנו כרגע.  
-          השירות זמין רק בתוך הגינה.
-        </p>      
-      )} */}
 
        {/* סטטוס מיקום + כפתור לאייפון */}
         {geoStatus === "not-supported" && (
