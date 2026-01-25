@@ -2,21 +2,25 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+type BeforeInstallPromptEvent = Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
+};
+
 export default function InstallAsAppButton() {
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [deferredPrompt, setDeferredPrompt] =
+    useState<BeforeInstallPromptEvent | null>(null);
   const [installed, setInstalled] = useState(false);
 
   const isIOS = useMemo(() => {
     if (typeof window === "undefined") return false;
-    return /iphone|ipad|ipod unanimous/i.test(navigator.userAgent.toLowerCase()) ||
-      /iphone|ipad|ipod/i.test(navigator.userAgent);
+    return /iphone|ipad|ipod/i.test(navigator.userAgent);
   }, []);
 
   const isStandalone = useMemo(() => {
     if (typeof window === "undefined") return false;
-    // iOS + some browsers
     return (
-      (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) ||
+      window.matchMedia("(display-mode: standalone)").matches ||
       // @ts-ignore
       window.navigator.standalone === true
     );
@@ -27,9 +31,12 @@ export default function InstallAsAppButton() {
   }, [isStandalone]);
 
   useEffect(() => {
-    const handler = (e: any) => {
+    const handler = (e: Event) => {
+      // חשוב: למנוע את ה־prompt האוטומטי
       e.preventDefault();
-      setDeferredPrompt(e);
+
+      // שמירה עם cast בטוח
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
     };
 
     window.addEventListener("beforeinstallprompt", handler);
@@ -41,9 +48,12 @@ export default function InstallAsAppButton() {
     };
   }, []);
 
+  console.log("PWA installed:", installed, "deferredPrompt:", deferredPrompt);
+
+  // כבר מותקן → לא להציג
   if (installed) return null;
 
-  // iOS: אין beforeinstallprompt
+  // iOS – אין beforeinstallprompt
   if (isIOS && !deferredPrompt) {
     return (
       <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-3 text-sm text-neutral-200">
@@ -55,16 +65,24 @@ export default function InstallAsAppButton() {
     );
   }
 
-  // Android/Chrome: יש prompt
+  // אין prompt זמין (Chrome החליט שעדיין לא installable)
   if (!deferredPrompt) return null;
 
   return (
     <button
       className="w-full rounded-xl bg-emerald-500 px-4 py-3 text-black font-semibold"
       onClick={async () => {
-        deferredPrompt.prompt();
-        await deferredPrompt.userChoice;
-        setDeferredPrompt(null);
+        try {
+          // 🔑 כאן זה בטוח
+          await deferredPrompt.prompt();
+
+          const choice = await deferredPrompt.userChoice;
+          console.log("PWA install choice:", choice);
+
+          setDeferredPrompt(null);
+        } catch (err) {
+          console.error("PWA prompt failed", err);
+        }
       }}
     >
       Download as app

@@ -10,24 +10,23 @@ export async function GET(req: Request) {
 
   // default icons (fallback)
   let icons = [
-    { src: "/icons/public/icons/279a4dec-1bd2-4864-b8ad-51be5014d143.png", sizes: "192x192", type: "image/png" },
-    { src: "/icons/public/icons/279a4dec-1bd2-4864-b8ad-51be5014d143.png", sizes: "512x512", type: "image/png" },
+    { src: "../../public/icons/279a4dec-1bd2-4864-b8ad-51be5014d143.png", sizes: "192x192", type: "image/png" },
+    { src: "../../public/icons/279a4dec-1bd2-4864-b8ad-51be5014d143.png", sizes: "512x512", type: "image/png" },
   ];
 
+  let vendor: { image_path?: string; name?: string } | null = null;
+  let vendorName = "";
+
   if (vendorSlug) {
-    const { data: vendor } = await admin
+    const { data } = await admin
       .from("vendors")
-      .select("image_path")
+      .select("image_path, name")
       .eq("slug", vendorSlug)
       .single();
 
+    vendor = data;
+
     if (vendor?.image_path) {
-    //   const { data: publicData } = admin.storage
-    //     .from("vendor-logos")
-    //     .getPublicUrl(vendor.image_path);
-
-    //   const logoUrl = publicData.publicUrl;
-
       const logoUrl = vendor.image_path
 
       // לפיילוט מספיק להשתמש באותו logoUrl לשני גדלים
@@ -36,10 +35,18 @@ export async function GET(req: Request) {
         { src: logoUrl, sizes: "512x512", type: "image/png" },
       ];
     }
+
+    console.log(`Vendor logo URL for ${vendorSlug}: ${icons[0].src}`);
+    if (vendor?.name) {
+      console.log(`Generating manifest for vendor: ${vendorSlug} (${vendor.name})`);
+      vendorName = vendor.name.length > 15 ? vendor.name.slice(0, 15) + "…" : vendor.name;
+    } else {
+      console.log(`Generating manifest for vendor: ${vendorSlug} (name not found)`);
+    }
   }
 
   const manifest = {
-    name: "בדרך אליך",
+    name: "בדרך אליך " + vendorName,
     short_name: "בדרך",
     start_url: start,
     display: "standalone",
