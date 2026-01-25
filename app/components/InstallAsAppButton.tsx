@@ -41,6 +41,8 @@ export default function InstallAsAppButton() {
     };
   }, []);
 
+  console.log(`isIOS: ${isIOS}, isStandalone: ${isStandalone}, installed: ${installed}, deferredPrompt: ${deferredPrompt ? "yes" : "no"}`);
+
   if (installed) return null;
 
   // iOS: אין beforeinstallprompt
@@ -56,7 +58,7 @@ export default function InstallAsAppButton() {
   }
 
   // Android/Chrome: יש prompt
-  if (!deferredPrompt) return null;
+//   if (!deferredPrompt) return null;
 
   return (
     <button

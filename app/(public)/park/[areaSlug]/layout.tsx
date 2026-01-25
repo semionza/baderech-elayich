@@ -24,8 +24,7 @@ export async function generateMetadata({
     : `/manifest.webmanifest?start=/park/${areaSlug}`;
 
   return {
-    manifest: manifestUrl,
-    themeColor: "#000000",
+    manifest: manifestUrl
   };
 }
 
