@@ -10,8 +10,8 @@ export async function GET(req: Request) {
 
   // default icons (fallback)
   let icons = [
-    { src: "../../public/icons/279a4dec-1bd2-4864-b8ad-51be5014d143.png", sizes: "192x192", type: "image/png" },
-    { src: "../../public/icons/279a4dec-1bd2-4864-b8ad-51be5014d143.png", sizes: "512x512", type: "image/png" },
+    { src: "/icons/279a4dec-1bd2-4864-b8ad-51be5014d143.png", sizes: "192x192", type: "image/png" },
+    { src: "/icons/279a4dec-1bd2-4864-b8ad-51be5014d143.png", sizes: "512x512", type: "image/png" },
   ];
 
   let vendor: { image_path?: string; name?: string } | null = null;
