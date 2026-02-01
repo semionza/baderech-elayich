@@ -14,6 +14,8 @@ export async function GET(req: Request) {
     { src: "/icons/279a4dec-1bd2-4864-b8ad-51be5014d143.png", sizes: "512x512", type: "image/png" },
   ];
 
+  console.log('start URL for manifest:', start);
+
   let vendor: { image_path?: string; name?: string } | null = null;
   let vendorName = "";
 
@@ -63,4 +65,5 @@ export async function GET(req: Request) {
       "Cache-Control": "public, max-age=0, s-maxage=60",
     },
   });
+
 }
