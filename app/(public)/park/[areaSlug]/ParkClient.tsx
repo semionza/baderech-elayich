@@ -543,6 +543,22 @@ export default function ParkClient({ areaSlug, area, products }: Props) {
           תשלום בביט (פתיחת מסך התשלום באפליקציית Bit)
         </a>
 
+        {activeOrderId ? (
+          <button
+            className="w-full rounded-xl bg-emerald-500 px-4 py-3 font-semibold text-black"
+            onClick={() => {
+              window.location.href = `/pay/${activeOrderId}`;
+            }}
+          >
+            תשלום באשראי
+          </button>
+        ) : (
+          <div className="text-xs text-neutral-400">
+            קודם בצע הזמנה כדי לקבל קישור תשלום
+          </div>
+        )}
+
+
         {orderError && (
           <p className="park-order-error">{orderError}</p>
         )}
