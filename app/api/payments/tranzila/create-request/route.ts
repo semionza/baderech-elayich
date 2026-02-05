@@ -1,54 +1,99 @@
 import { NextResponse } from "next/server";
 import { tranzilaHeaders } from "@/lib/tranzilaAuth";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import util from "util";
 
 export async function POST(req: Request) {
   try {
-    const { orderId } = await req.json();
+    const { orderId } = await req.json().catch(() => ({}));
     if (!orderId) return NextResponse.json({ error: "Missing orderId" }, { status: 400 });
 
     const admin = supabaseAdmin();
 
     const { data: order, error: orderErr } = await admin
       .from("orders")
-      .select("id,total_amount,currency_code,customer_phone,service_area_id")
+      .select(`
+        id,
+        total_amount,
+        currency,
+        customer_phone,
+        order_items (
+          name,
+          price,
+          quantity
+        )
+      `)
       .eq("id", orderId)
       .single();
 
-    if (orderErr || !order) return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    console.error(
+      "Creating Tranzila request for order:",
+      util.inspect(order, { depth: null, colors: true })
+    );
 
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL!;
-    const terminal_name = process.env.TRANZILA_TERMINAL_NAME!;
-    if (!siteUrl || !terminal_name) {
-      return NextResponse.json({ error: "Missing NEXT_PUBLIC_SITE_URL / TRANZILA_TERMINAL_NAME" }, { status: 500 });
+    if (orderErr || !order) {
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    // URLs שחוזרים אליך
+    const terminal_name = process.env.TRANZILA_TERMINAL_NAME!;
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL!;
+    if (!terminal_name || !siteUrl) {
+      return NextResponse.json(
+        { error: "Missing TRANZILA_TERMINAL_NAME / NEXT_PUBLIC_SITE_URL" },
+        { status: 500 }
+      );
+    }
+
     const success_url = `${siteUrl}/pay/tranzila/success?orderId=${order.id}`;
     const failure_url = `${siteUrl}/pay/tranzila/fail?orderId=${order.id}`;
-    const notify_url  = `${siteUrl}/api/payments/tranzila/notify?orderId=${order.id}`;
+    const notify_url = `${siteUrl}/api/payments/tranzila/notify?orderId=${order.id}`;
 
-    // Payment Request (לפי docs: /v1/pr/create) :contentReference[oaicite:1]{index=1}
+    const toIls = (agorot: number) => Number((agorot / 100).toFixed(2));
+
+    const items = (order.order_items ?? []).map((it: any) => ({
+      name: it.name,
+      unit_price: toIls(Number(it.price)),
+      type: "I",
+  
+      units_number: Number(it.quantity ?? 1),
+      currency_code: order.currency ?? "ILS",
+      vat_percent: 0,
+    }));
+
+    if (!items.length) {
+      return NextResponse.json({ error: "Order has no items" }, { status: 400 });
+    }
+
     const endpoint = "https://api.tranzila.com/v1/pr/create";
 
-    // payload טיפוסי: ייתכן ששמות שדות משתנים קצת בין חשבונות/מוצרים,
-    // לכן בניתי זאת “סובלני”: אתה תראה ב-response אם צריך התאמה.
+    // מינימום שדות כדי לעבור schema
     const body: any = {
       terminal_name,
-      amount: order.total_amount,
-      currency_code: order.currency_code ?? "ILS",
-
+      created_by_user: "semionza",
+      created_by_system: "baderech-elayich",
+      created_via: "TRAPI",
+      request_date: null,
+      amount: toIls(Number(order.total_amount)),         // אם יגידו שהסכום נגזר מה-items, נוכל להסיר
+      currency_code: order.currency ?? "ILS",
       success_url,
       failure_url,
       notify_url,
-
-      // מומלץ להעביר מזהה הזמנה כדי לזהות חזרה
-      // (אם יש שדה ייעודי אצלך בטרנזילה - נשנה)
       client: {
-        phone: order.customer_phone ?? "",
+        external_id: null,
+        name: "Zaslavsky Semion",
+        contact_person: "Zaslavsky Semion",
+        email: "semionza@gmail.com",
       },
-      reference: order.id,
-      description: `Order ${order.id}`,
+      items,
+      payment_plans: [1],
+      payment_methods: [1],
+      payments_number: 1,
+      request_language: "hebrew",
+      response_language: "hebrew",
+      send_email: {
+        "sender_name": "Baderex - Tranzila",
+        "sender_email": "donotreply@tranzila.com"
+      }
     };
 
     const res = await fetch(endpoint, {
@@ -60,21 +105,33 @@ export async function POST(req: Request) {
 
     const raw = await res.text();
     let data: any = null;
-    try { data = JSON.parse(raw); } catch {}
-
-    if (!res.ok) {
-      return NextResponse.json({ error: "Tranzila error", status: res.status, raw }, { status: 502 });
+    try {
+      data = JSON.parse(raw);
+    } catch {
+      data = { raw };
     }
 
-    // הרבה APIs שלהם מחזירים URL בשם sale_url / url / payment_url (שונה בין שירותים) :contentReference[oaicite:2]{index=2}
+    if (!res.ok) {
+      return NextResponse.json({ error: "Tranzila error", status: res.status, data }, { status: 502 });
+    }
+
     const payment_url =
-      data?.payment_url ?? data?.sale_url ?? data?.url ?? data?.redirect_url ?? null;
+      data?.pr_link ?? null;
 
     const payment_reference =
-      data?.request_id ?? data?.pr_id ?? data?.transaction_id ?? data?.track_id ?? null;
+      data?.pr_id ?? null;
+
+    console.error(
+      "Tranzila response:",
+      util.inspect(data, { depth: null, colors: true })
+    );
 
     if (!payment_url) {
-      return NextResponse.json({ error: "No payment_url in response", raw: data ?? raw }, { status: 502 });
+      console.error(
+        "Tranzila mismatch_info:",
+        util.inspect(data?.mismatch_info, { depth: null, colors: true })
+      );
+      return NextResponse.json({ error: "No payment_url in response", data }, { status: 502 });
     }
 
     await admin
@@ -86,7 +143,7 @@ export async function POST(req: Request) {
       })
       .eq("id", order.id);
 
-    return NextResponse.json({ payment_url, payment_reference, raw: data ?? raw });
+    return NextResponse.json({ payment_url, payment_reference, data });
   } catch (e: any) {
     console.error("create-request error", e);
     return NextResponse.json({ error: e?.message ?? "Unknown error" }, { status: 500 });

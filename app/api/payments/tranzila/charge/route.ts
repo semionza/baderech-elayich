@@ -28,7 +28,7 @@ export async function POST(req: Request) {
     const admin = supabaseAdmin();
     const { data: order, error: orderErr } = await admin
       .from("orders")
-      .select("id,total_amount,currency_code,customer_phone,customer_note")
+      .select("id,total_amount,currency,customer_phone,customer_note")
       .eq("id", payload.orderId)
       .single();
 
@@ -46,7 +46,7 @@ export async function POST(req: Request) {
     const tranzilaBody: any = {
       terminal_name,
       amount: order.total_amount,
-      currency_code: order.currency_code ?? "ILS",
+      currency_code: order.currency ?? "ILS",
 
       // נתוני כרטיס (⚠️ PCI)
       card_number: payload.card_number,
